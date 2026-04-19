@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wipes Well — Amazon Control Center</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #080d14;
+    color: #c8d6e5;
+    min-height: 100vh;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+    background-size: 32px 32px;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(8,13,20,0.97);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .logo span { color: #3b82f6; }
+  .badge {
+    background: rgba(59,130,246,0.15);
+    border: 1px solid rgba(59,130,246,0.3);
+    color: #60a5fa;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* TODAY DATE — destacado */
+  .today-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 10px;
+    padding: 6px 16px;
+    gap: 1px;
+  }
+  .today-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #3b82f6;
+  }
+  .today-date {
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #4a5568; }
+  .asin-tag {
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+    color: #34d399;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: monospace;
+  }
+  .last-updated {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #4a6080;
+  }
+
+  /* ─── LAYOUT ─── */
+  .main { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #4a6080;
+    margin-bottom: 16px;
+  }
+
+  /* ─── KPI GRID ─── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 12px; }
+  .kpi-grid-2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+
+  .kpi-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: rgba(255,255,255,0.14); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent, #3b82f6);
+    opacity: 0.7;
+  }
+  .kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #4a6080; margin-bottom: 8px; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 6px; font-feature-settings: 'tnum'; }
+  .kpi-sub { font-size: 11px; color: #4a6080; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .kpi-period { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #2d4060; margin-bottom: 4px; }
+  .kpi-delta { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .delta-up { background: rgba(16,185,129,0.15); color: #34d399; }
+  .delta-down { background: rgba(239,68,68,0.15); color: #f87171; }
+  .delta-warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .delta-neutral { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+  .accent-blue { --accent: #3b82f6; }
+  .accent-green { --accent: #10b981; }
+  .accent-amber { --accent: #f59e0b; }
+  .accent-red { --accent: #ef4444; }
+  .accent-purple { --accent: #8b5cf6; }
+  .accent-teal { --accent: #14b8a6; }
+  .accent-indigo { --accent: #6366f1; }
+
+  /* ─── THREE COL ─── */
+  .three-col { display: grid; grid-template-columns: 1.2fr 1fr 0.8fr; gap: 20px; margin-bottom: 28px; }
+
+  .panel {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .panel-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: #4a6080; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  /* ─── KEYWORD TABLE ─── */
+  .kw-table { width: 100%; border-collapse: collapse; }
+  .kw-table th { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #2d4060; padding: 0 8px 10px 8px; text-align: left; }
+  .kw-table td { padding: 7px 8px; font-size: 12px; border-top: 1px solid rgba(255,255,255,0.04); color: #8ea8c4; }
+  .kw-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .kw-name { color: #c8d6e5; font-weight: 500; }
+  .kw-rank { font-weight: 700; font-size: 13px; font-family: monospace; }
+  .rank-top10 { color: #10b981; }
+  .rank-top30 { color: #34d399; }
+  .rank-top50 { color: #fbbf24; }
+  .rank-top80 { color: #fb923c; }
+  .rank-invisible { color: #ef4444; }
+  .sv-tag { font-size: 10px; color: #3b6090; background: rgba(59,130,246,0.08); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+  .trend-up { color: #10b981; font-weight: 700; font-size: 11px; }
+  .trend-down { color: #ef4444; font-weight: 700; font-size: 11px; }
+  .trend-stable { color: #6b7280; font-size: 11px; }
+  .bucket-header td { background: rgba(59,130,246,0.06); color: #3b82f6; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 8px; border-top: 1px solid rgba(59,130,246,0.15); }
+
+  /* ─── ALERTS ─── */
+  .alerts { display: flex; flex-direction: column; gap: 8px; }
+  .alert { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; font-size: 12px; line-height: 1.5; border: 1px solid transparent; }
+  .alert-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .alert-content { flex: 1; }
+  .alert-title { font-weight: 600; margin-bottom: 2px; }
+  .alert-desc { color: #4a6080; font-size: 11px; }
+  .alert-red { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.2); }
+  .alert-red .alert-title { color: #f87171; }
+  .alert-amber { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.2); }
+  .alert-amber .alert-title { color: #fbbf24; }
+  .alert-green { background: rgba(16,185,129,0.07); border-color: rgba(16,185,129,0.2); }
+  .alert-green .alert-title { color: #34d399; }
+  .alert-blue { background: rgba(59,130,246,0.07); border-color: rgba(59,130,246,0.2); }
+  .alert-blue .alert-title { color: #60a5fa; }
+
+  /* ─── CHECKPOINTS ─── */
+  .checkpoints { display: flex; flex-direction: column; gap: 8px; }
+  .checkpoint { display: flex; align-items: center; gap: 14px; padding: 11px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; font-size: 12px; }
+  .checkpoint-date { font-size: 10px; font-weight: 700; font-family: monospace; color: #3b82f6; min-width: 52px; text-transform: uppercase; }
+  .checkpoint-text { color: #8ea8c4; flex: 1; }
+  .checkpoint-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+  .status-pending { background: rgba(245,158,11,0.1); color: #fbbf24; }
+  .status-active { background: rgba(59,130,246,0.1); color: #60a5fa; }
+  .status-done { background: rgba(16,185,129,0.1); color: #34d399; }
+
+  /* ─── DIVIDER ─── */
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent); margin: 32px 0; }
+
+  /* ─── KANBAN ─── */
+  .kanban-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .kanban-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #4a6080; }
+  .save-btn { display: flex; align-items: center; gap: 6px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.35); color: #60a5fa; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .save-btn:hover { background: rgba(59,130,246,0.25); border-color: rgba(59,130,246,0.6); }
+  .save-btn.saved { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.35); color: #34d399; }
+  .kanban-header-left { display: flex; align-items: center; gap: 16px; }
+  .progress-bar-wrap { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #4a6080; }
+  .progress-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); border-radius: 2px; transition: width 0.5s ease; }
+
+  .kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+  .kanban-col {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 16px;
+    min-height: 420px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .kanban-col.drag-over {
+    background: rgba(59,130,246,0.06);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .kanban-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .kanban-col-title { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .col-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pending { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+  .dot-progress { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+  .dot-done { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .col-count { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.07); padding: 2px 8px; border-radius: 20px; color: #6b7280; }
+
+  .kanban-category { margin-bottom: 4px; }
+  .category-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #2d4060; padding: 8px 4px 6px 4px; }
+
+  /* CARDS DRAG & DROP */
+  .kanban-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: all 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .kanban-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.13); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+  .kanban-card:active { cursor: grabbing; }
+  .kanban-card.dragging { opacity: 0.4; transform: scale(0.98); }
+  .kanban-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 10px 0 0 10px;
+    background: var(--cat-color, #3b82f6);
+  }
+  .drag-handle {
+    position: absolute;
+    top: 10px; right: 10px;
+    color: #1e2a38;
+    font-size: 12px;
+    cursor: grab;
+    transition: color 0.15s;
+  }
+  .kanban-card:hover .drag-handle { color: #3d5570; }
+
+  .card-title { font-size: 12px; font-weight: 600; color: #c8d6e5; margin-bottom: 4px; line-height: 1.4; padding-right: 16px; }
+  .card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .card-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 4px; border: 1px solid transparent; }
+  .tag-ppc { background: rgba(99,102,241,0.15); color: #818cf8; border-color: rgba(99,102,241,0.2); }
+  .tag-seo { background: rgba(20,184,166,0.15); color: #2dd4bf; border-color: rgba(20,184,166,0.2); }
+  .tag-reviews { background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.2); }
+  .tag-pricing { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.2); }
+  .tag-urgent { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.2); }
+  .tag-monitoring { background: rgba(100,116,139,0.15); color: #94a3b8; border-color: rgba(100,116,139,0.2); }
+  .tag-done { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.2); }
+  .card-desc { font-size: 11px; color: #3d5570; margin-top: 4px; line-height: 1.4; }
+
+  .cards-area { min-height: 80px; }
+
+  .drop-placeholder {
+    border: 2px dashed rgba(59,130,246,0.3);
+    border-radius: 10px;
+    height: 60px;
+    margin-bottom: 8px;
+    display: none;
+  }
+  .drop-placeholder.visible { display: block; }
+
+  /* ─── FOOTER ─── */
+  .footer { margin-top: 40px; padding: 20px 32px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #1e2a38; }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">Wipes<span>Well</span></div>
+    <div class="badge">Amazon US</div>
+  </div>
+
+  <!-- FECHA DE HOY — centro destacado -->
+  <div class="today-block">
+    <div class="today-label">Hoy</div>
+    <div class="today-date" id="todayDate">—</div>
+  </div>
+
+  <div class="header-right">
+    <div class="asin-tag">B0F7VD27HQ — Makeup Remover</div>
+    <div class="last-updated">Última revisión: Apr 19, 2026 · Domingo</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ─── KPIs PRINCIPALES ─── -->
+  <div class="section-title">Makeup Remover — Performance Real (Seller Central)</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card accent-purple">
+      <div class="kpi-label">Unidades vendidas</div>
+      <div class="kpi-period">30d rolling · MR ASIN</div>
+      <div class="kpi-value">88</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-up">Ene 91 · Feb 51 · Mar 100</span>
+        <span>Total store: 89</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-period">30d rolling · MR ASIN</div>
+      <div class="kpi-value">$1,063</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-up">~$1,200 proyectado abr</span>
+        <span>$12.31/ud</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-teal">
+      <div class="kpi-label">CVR (Session → Compra)</div>
+      <div class="kpi-period">30d rolling · Seller Central</div>
+      <div class="kpi-value">17.0%</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-up">519 sessions · 88 uds</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-blue">
+      <div class="kpi-label">Featured Offer %</div>
+      <div class="kpi-period">MTD</div>
+      <div class="kpi-value">100%</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-up">Buy Box dueño</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">Inventory FBA</div>
+      <div class="kpi-period">Hoy</div>
+      <div class="kpi-value">95</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-neutral">Essentials: 142</span>
+        <span>Proyección: sep</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid-2">
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">ROAS — Ads MTD</div>
+      <div class="kpi-period">Apr 1–19 · Seller Central</div>
+      <div class="kpi-value">5.27×</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-up">✅ Sobre break-even 3.14×</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">ACOS — Ads MTD</div>
+      <div class="kpi-period">Apr 1–19 · $20.76 spend</div>
+      <div class="kpi-value">19.0%</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-up">✅ Bajo break-even 31.8%</span>
+        <span>$109.34 ad sales</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-red">
+      <div class="kpi-label">Reviews</div>
+      <div class="kpi-value">6</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-down">▼ 11 eliminadas</span>
+        <span>Seller FB: 5.0★ (13)</span>
+      </div>
+    </div>
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">Precio actual</div>
+      <div class="kpi-value">$12.31</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta delta-warn">Niche median $19.17</span>
+        <span>BSR Beauty: 104K ⚠️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── KEYWORDS + ALERTAS + CHECKPOINTS ─── -->
+  <div class="three-col">
+
+    <div class="panel">
+      <div class="panel-title">
+        Keyword Rankings — Apr 19
+        <span class="panel-badge" style="background:rgba(59,130,246,0.1);color:#60a5fa;">96 tracked</span>
+      </div>
+      <table class="kw-table">
+        <thead><tr><th>Keyword</th><th>SV</th><th>Rank</th><th>7d</th></tr></thead>
+        <tbody>
+          <tr class="bucket-header"><td colspan="4">🏆 FORTALEZAS</td></tr>
+          <tr><td class="kw-name">oil based makeup remover wipes</td><td><span class="sv-tag">≤450</span></td><td><span class="kw-rank rank-top30">17</span></td><td><span class="trend-up">▲10</span></td></tr>
+          <tr><td class="kw-name">makeup remover wipes mini</td><td><span class="sv-tag">692</span></td><td><span class="kw-rank rank-top30">30</span></td><td><span class="trend-up">▲10</span></td></tr>
+          <tr><td class="kw-name">mini makeup remover wipes</td><td><span class="sv-tag">973</span></td><td><span class="kw-rank rank-top30">33</span></td><td><span class="trend-down">▼4</span></td></tr>
+          <tr><td class="kw-name">travel-size MR wipes</td><td><span class="sv-tag">≤450</span></td><td><span class="kw-rank rank-top30">29</span></td><td><span class="trend-up">▲72</span></td></tr>
+          <tr class="bucket-header"><td colspan="4">📦 INDIVIDUALLY WRAPPED</td></tr>
+          <tr><td class="kw-name">makeup wipes individually wrapped</td><td><span class="sv-tag">1,836</span></td><td><span class="kw-rank rank-top50">42</span></td><td><span class="trend-up">▲7</span></td></tr>
+          <tr><td class="kw-name">individual makeup wipes</td><td><span class="sv-tag">1,133</span></td><td><span class="kw-rank rank-top50">44</span></td><td><span class="trend-up">▲9</span></td></tr>
+          <tr><td class="kw-name">makeup remover wipes individual</td><td><span class="sv-tag">921</span></td><td><span class="kw-rank rank-top50">48</span></td><td><span class="trend-up">▲53</span></td></tr>
+          <tr class="bucket-header"><td colspan="4">✈️ TRAVEL (objetivo)</td></tr>
+          <tr><td class="kw-name">makeup remover wipes travel</td><td><span class="sv-tag">5,204</span></td><td><span class="kw-rank rank-top80">65</span></td><td><span class="trend-up">▲34</span></td></tr>
+          <tr><td class="kw-name">travel makeup remover wipes</td><td><span class="sv-tag">2,226</span></td><td><span class="kw-rank rank-top50">47</span></td><td><span class="trend-up">▲21</span></td></tr>
+          <tr><td class="kw-name">makeup wipes travel size</td><td><span class="sv-tag">2,986</span></td><td><span class="kw-rank rank-top80">62</span></td><td><span class="trend-down">▼18</span></td></tr>
+          <tr><td class="kw-name">travel size makeup wipes</td><td><span class="sv-tag">1,959</span></td><td><span class="kw-rank rank-top30">24</span></td><td><span class="trend-up">▲37</span></td></tr>
+          <tr class="bucket-header"><td colspan="4">🔴 INVISIBLES (head terms)</td></tr>
+          <tr><td class="kw-name">makeup remover wipes</td><td><span class="sv-tag">358K</span></td><td><span class="kw-rank rank-invisible">101</span></td><td><span class="trend-stable">—</span></td></tr>
+          <tr><td class="kw-name">makeup remover</td><td><span class="sv-tag">213K</span></td><td><span class="kw-rank rank-invisible">101</span></td><td><span class="trend-stable">—</span></td></tr>
+          <tr><td class="kw-name">face wipes</td><td><span class="sv-tag">148K</span></td><td><span class="kw-rank rank-invisible">101</span></td><td><span class="trend-stable">—</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="panel">
+        <div class="panel-title">Alertas activas</div>
+        <div class="alerts">
+          <div class="alert alert-red">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+              <div class="alert-title">Reviews en zona crítica</div>
+              <div class="alert-desc">6 reviews (cayeron de 17 el Apr 13). El algoritmo frena el listing por debajo de 15. Activar Request a Review urgente.</div>
+            </div>
+          </div>
+          <div class="alert alert-amber">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+              <div class="alert-title">Bullet B4 sin actualizar</div>
+              <div class="alert-desc">Pendiente desde Apr 13: cambiar "individually wrapped solutions" → "individual wipes" en Seller Central.</div>
+            </div>
+          </div>
+          <div class="alert alert-green">
+            <div class="alert-icon">✅</div>
+            <div class="alert-content">
+              <div class="alert-title">Ads rentables — ROAS 5.27× · ACOS 19.0%</div>
+              <div class="alert-desc">Sobre break-even 3.14×. $20.76 spend → $109.34 ad sales Apr 1-19. Mejor resultado histórico.</div>
+            </div>
+          </div>
+          <div class="alert alert-green">
+            <div class="alert-icon">✅</div>
+            <div class="alert-content">
+              <div class="alert-title">Title change Apr 12 confirmado — travel keywords explotando</div>
+              <div class="alert-desc">travel size MR wipes: rank 24 (+37 en 7d). Travel bucket ganó +21 a +37 posiciones. Orgánico funcionando.</div>
+            </div>
+          </div>
+          <div class="alert alert-green">
+            <div class="alert-icon">✅</div>
+            <div class="alert-content">
+              <div class="alert-title">Oil based MR — Campaña creada · orgánico activo</div>
+              <div class="alert-desc">Campaña SP Exact creada Apr 17 · bid $0.85 · $0 spend. Rank #17 orgánico (pico #7 el Apr 18). NO subir bid: Amazon sugiere $2.80 pero el orgánico hace el trabajo.</div>
+            </div>
+          </div>
+          <div class="alert alert-amber">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+              <div class="alert-title">BSR degradado — investigar</div>
+              <div class="alert-desc">104,140 hoy vs ~42,945 el Apr 12. Posible semana con menos ventas. Revisar tendencia antes del próximo domingo.</div>
+            </div>
+          </div>
+          <div class="alert alert-blue">
+            <div class="alert-icon">💡</div>
+            <div class="alert-content">
+              <div class="alert-title">Precio 36% bajo niche median</div>
+              <div class="alert-desc">Test: subir a $13.99 con Highlight en Rank Radar para medir CVR.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="panel">
+        <div class="panel-title">Checkpoints</div>
+        <div class="checkpoints">
+          <div class="checkpoint"><div class="checkpoint-date">Apr 19</div><div class="checkpoint-text">Activar Request a Review (90 días)</div><div class="checkpoint-status status-pending">Pendiente</div></div>
+          <div class="checkpoint"><div class="checkpoint-date">Apr 17 ✅</div><div class="checkpoint-text">Campaña SP Exact "oil based MR wipes"</div><div class="checkpoint-status status-done">Hecho</div></div>
+          <div class="checkpoint"><div class="checkpoint-date">Esta sem</div><div class="checkpoint-text">B4 bullet fix en Seller Central</div><div class="checkpoint-status status-pending">Pendiente</div></div>
+          <div class="checkpoint"><div class="checkpoint-date">Apr 20</div><div class="checkpoint-text">Outliers backend: ¿indexando?</div><div class="checkpoint-status status-active">Mañana</div></div>
+          <div class="checkpoint"><div class="checkpoint-date">Apr 26</div><div class="checkpoint-text">BSR: investigar caída 42K → 104K</div><div class="checkpoint-status status-active">7 días</div></div>
+          <div class="checkpoint"><div class="checkpoint-date">Apr 27</div><div class="checkpoint-text">Checkpoint completo del título</div><div class="checkpoint-status status-active">8 días</div></div>
+          <div class="checkpoint"><div class="checkpoint-date">Domingo</div><div class="checkpoint-text">Revisión semanal: Data Dive → Ads → Dashboard</div><div class="checkpoint-status status-active">Recurrente</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Gainers 7d destacados</div>
+        <table class="kw-table">
+          <thead><tr><th>Keyword</th><th>SV</th><th>Rank</th><th>Ganó</th></tr></thead>
+          <tbody>
+            <tr><td class="kw-name" style="font-size:11px;">travel size makeup wipes</td><td><span class="sv-tag">1,959</span></td><td><span class="kw-rank rank-top30">24</span></td><td><span class="trend-up">+37</span></td></tr>
+            <tr><td class="kw-name" style="font-size:11px;">MR wipes travel (5.2K SV)</td><td><span class="sv-tag">5,204</span></td><td><span class="kw-rank rank-top80">65</span></td><td><span class="trend-up">+34</span></td></tr>
+            <tr><td class="kw-name" style="font-size:11px;">travel makeup remover wipes</td><td><span class="sv-tag">2,226</span></td><td><span class="kw-rank rank-top50">47</span></td><td><span class="trend-up">+21</span></td></tr>
+            <tr><td class="kw-name" style="font-size:11px;">oil based MR wipes</td><td><span class="sv-tag">≤450</span></td><td><span class="kw-rank rank-top30">17</span></td><td><span class="trend-up">+10</span></td></tr>
+            <tr><td class="kw-name" style="font-size:11px;">makeup remover wipes mini</td><td><span class="sv-tag">692</span></td><td><span class="kw-rank rank-top30">30</span></td><td><span class="trend-up">+10</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DIVIDER ─── -->
+  <div class="divider"></div>
+
+  <!-- ─── KANBAN ─── -->
+  <div class="kanban-header">
+    <div class="kanban-header-left">
+      <div class="kanban-title">Plan de acción — Tablero</div>
+      <button class="save-btn" id="saveBtn" onclick="saveState()">💾 Guardar</button>
+    </div>
+    <div class="progress-bar-wrap">
+      <span id="progressText">2 / 11 completadas</span>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:18%"></div></div>
+      <span id="progressPct">18%</span>
+    </div>
+  </div>
+
+  <div class="kanban-board">
+
+    <!-- PENDIENTE -->
+    <div class="kanban-col" id="col-pending" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'pending')">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title"><div class="col-dot dot-pending"></div>Pendiente</div>
+        <div class="col-count" id="count-pending">8</div>
+        <!-- card-3 moved to done -->
+      </div>
+      <div class="cards-area" id="area-pending">
+        <div class="drop-placeholder" id="ph-pending"></div>
+
+        <div class="category-label">🔴 Urgente</div>
+        <div class="kanban-card" draggable="true" id="card-1" style="--cat-color:#ef4444" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Activar Request a Review en todas las órdenes</div>
+          <div class="card-desc">Seller Central → Orders → solicitar review en cada orden de los últimos 90 días. Camino a 30+ reviews.</div>
+          <div class="card-meta"><span class="card-tag tag-reviews">Reviews</span><span class="card-tag tag-urgent">Urgente</span></div>
+        </div>
+
+        <div class="kanban-card" draggable="true" id="card-2" style="--cat-color:#ef4444" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Bullet B4: "individually wrapped solutions" → "individual wipes"</div>
+          <div class="card-desc">Seller Central. Root tiene 7,251 SV. Sin esto se pierde Ranking Juice del backend del Apr 13.</div>
+          <div class="card-meta"><span class="card-tag tag-seo">SEO</span><span class="card-tag tag-urgent">Urgente</span></div>
+        </div>
+
+        <div class="category-label">💜 PPC</div>
+        <div class="kanban-card" draggable="true" id="card-4" style="--cat-color:#6366f1" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Limpiar Blind Spend — añadir negativos masivos</div>
+          <div class="card-desc">fan, portable fan, neck fan, birthday gifts for women, disney fashion women, hiking gear, cerave, q tips, face wash, alcohol wipes, travel essentials ($3 spend).</div>
+          <div class="card-meta"><span class="card-tag tag-ppc">PPC</span></div>
+        </div>
+
+        <div class="kanban-card" draggable="true" id="card-5" style="--cat-color:#6366f1" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Monitorear Campaign 1 "Rank wipe"</div>
+          <div class="card-desc">Decisión Apr 17: mantener activa. Revisar en 7 días si genera ventas con la nueva campaña oil based como referencia.</div>
+          <div class="card-meta"><span class="card-tag tag-ppc">PPC</span><span class="card-tag tag-monitoring">Monitoring</span></div>
+        </div>
+
+        <div class="category-label">💰 Pricing</div>
+        <div class="kanban-card" draggable="true" id="card-6" style="--cat-color:#10b981" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Test: subir precio a $13.99 + Highlight en Rank Radar</div>
+          <div class="card-desc">Niche median $19.17. CVR sólido (5-11%). +$1.68/unidad. Poner Highlight y medir 7 días.</div>
+          <div class="card-meta"><span class="card-tag tag-pricing">Pricing</span></div>
+        </div>
+
+        <div class="category-label">📊 Monitoring</div>
+        <div class="kanban-card" draggable="true" id="card-7" style="--cat-color:#64748b" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Apr 20: check outlier keywords indexing</div>
+          <div class="card-desc">"individual wipes" (7,251 SV), "facial wipes makeup remover" (3,801 SV), "MR wipes sensitive skin" (3,368 SV).</div>
+          <div class="card-meta"><span class="card-tag tag-monitoring">Monitoring</span></div>
+        </div>
+
+        <div class="kanban-card" draggable="true" id="card-8" style="--cat-color:#64748b" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Apr 27: checkpoint completo del título</div>
+          <div class="card-desc">¿Travel keywords estabilizados arriba de posición 50? Confirmar impacto del cambio del Apr 12.</div>
+          <div class="card-meta"><span class="card-tag tag-monitoring">Monitoring</span></div>
+        </div>
+
+        <div class="kanban-card" draggable="true" id="card-11" style="--cat-color:#f59e0b" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Investigar BSR: 104K (Apr 19) vs 42K (Apr 12)</div>
+          <div class="card-desc">Caída fuerte en Beauty & Personal Care. ¿Días sin ventas? Revisar tendencia en Business Reports semana a semana.</div>
+          <div class="card-meta"><span class="card-tag tag-monitoring">Monitoring</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EN PROGRESO -->
+    <div class="kanban-col" id="col-progress" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'progress')">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title"><div class="col-dot dot-progress"></div>En Progreso</div>
+        <div class="col-count" id="count-progress">1</div>
+      </div>
+      <div class="cards-area" id="area-progress">
+        <div class="drop-placeholder" id="ph-progress"></div>
+        <div class="kanban-card" draggable="true" id="card-9" style="--cat-color:#f59e0b" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Monitoreo impacto título nuevo (Apr 12-13)</div>
+          <div class="card-desc">Señales mixtas: "makeup wipes travel si..." llegó a rank 31 el Apr 15 (máximo histórico) pero hoy en 62. Checkpoint: Apr 27.</div>
+          <div class="card-meta"><span class="card-tag tag-seo">SEO</span><span class="card-tag tag-monitoring">Monitoring</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPLETADO -->
+    <div class="kanban-col" id="col-done" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'done')">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title"><div class="col-dot dot-done"></div>Completado</div>
+        <div class="col-count" id="count-done">2</div>
+      </div>
+      <div class="cards-area" id="area-done">
+        <div class="drop-placeholder" id="ph-done"></div>
+        <div class="kanban-card" draggable="true" id="card-10" style="--cat-color:#10b981" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Backend keywords optimizados en Seller Central</div>
+          <div class="card-desc">Apr 13: 244 chars, 13 roots nuevos. Gainers 7d confirman impacto: múltiples keywords +37 a +72 posiciones.</div>
+          <div class="card-meta"><span class="card-tag tag-seo">SEO</span><span class="card-tag tag-done">✓ Hecho</span></div>
+        </div>
+        <div class="kanban-card" draggable="true" id="card-3" style="--cat-color:#10b981" ondragstart="onDragStart(event)">
+          <div class="drag-handle">⠿</div>
+          <div class="card-title">Campaña SP Exact — "oil based makeup remover wipes"</div>
+          <div class="card-desc">Creada Apr 17. Bid $0.85. Rank #17 orgánico (pico #7 el Apr 18). $0 spend · orgánico hace el trabajo. NO subir bid.</div>
+          <div class="card-meta"><span class="card-tag tag-ppc">PPC</span><span class="card-tag tag-done">✓ Hecho</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /kanban-board -->
+
+</div><!-- /main -->
+
+<div class="footer">
+  <div>Wipes Well — Amazon Control Center · B0F7VD27HQ</div>
+  <div>Datos: Seller Central + Data Dive + Brand Analytics · Last dive Apr 19, 2026 · Domingo</div>
+</div>
+
+<script>
+  // ─── FECHA DE HOY ───
+  (function() {
+    const d = new Date();
+    const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const str = days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    document.getElementById('todayDate').textContent = str;
+  })();
+
+  // ─── DRAG & DROP ───
+  let draggedCard = null;
+  let sourceCol = null;
+
+  function onDragStart(e) {
+    draggedCard = e.currentTarget;
+    sourceCol = draggedCard.closest('.kanban-col').id;
+    setTimeout(() => draggedCard.classList.add('dragging'), 0);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  document.addEventListener('dragend', () => {
+    if (draggedCard) {
+      draggedCard.classList.remove('dragging');
+      draggedCard = null;
+    }
+    document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+    document.querySelectorAll('.drop-placeholder').forEach(p => p.classList.remove('visible'));
+  });
+
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const col = e.currentTarget;
+    col.classList.add('drag-over');
+    const ph = col.querySelector('.drop-placeholder');
+    if (ph) ph.classList.add('visible');
+  }
+
+  function onDragLeave(e) {
+    const col = e.currentTarget;
+    if (!col.contains(e.relatedTarget)) {
+      col.classList.remove('drag-over');
+      const ph = col.querySelector('.drop-placeholder');
+      if (ph) ph.classList.remove('visible');
+    }
+  }
+
+  function onDrop(e, colName) {
+    e.preventDefault();
+    if (!draggedCard) return;
+    const targetCol = e.currentTarget;
+    const area = targetCol.querySelector('.cards-area');
+    area.appendChild(draggedCard);
+    targetCol.classList.remove('drag-over');
+    const ph = targetCol.querySelector('.drop-placeholder');
+    if (ph) ph.classList.remove('visible');
+    updateCounts();
+  }
+
+  function updateCounts() {
+    const cols = ['pending', 'progress', 'done'];
+    let total = 0, completed = 0;
+    cols.forEach(col => {
+      const area = document.getElementById('area-' + col);
+      const cards = area.querySelectorAll('.kanban-card').length;
+      document.getElementById('count-' + col).textContent = cards;
+      total += cards;
+      if (col === 'done') completed = cards;
+    });
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    document.getElementById('progressText').textContent = completed + ' / ' + total + ' completadas';
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+  }
+
+  // ─── SAVE / LOAD STATE ───
+  function saveState() {
+    const state = {};
+    ['pending', 'progress', 'done'].forEach(col => {
+      const area = document.getElementById('area-' + col);
+      state[col] = Array.from(area.querySelectorAll('.kanban-card')).map(c => c.id);
+    });
+    localStorage.setItem('ww_kanban', JSON.stringify(state));
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = '✅ Guardado';
+    btn.classList.add('saved');
+    setTimeout(() => { btn.textContent = '💾 Guardar'; btn.classList.remove('saved'); }, 2000);
+  }
+
+  function loadState() {
+    const raw = localStorage.getItem('ww_kanban');
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    ['pending', 'progress', 'done'].forEach(col => {
+      const area = document.getElementById('area-' + col);
+      (state[col] || []).forEach(id => {
+        const card = document.getElementById(id);
+        if (card) area.appendChild(card);
+      });
+    });
+    updateCounts();
+  }
+
+  loadState();
+</script>
+
+</body>
+</html>
