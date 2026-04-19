@@ -298,6 +298,100 @@
 
   /* ─── FOOTER ─── */
   .footer { margin-top: 40px; padding: 20px 32px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #1e2a38; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    /* Header */
+    .header {
+      padding: 12px 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header-left { gap: 10px; }
+    .logo { font-size: 16px; }
+    .today-block { padding: 4px 12px; }
+    .today-date { font-size: 13px; }
+    .header-right { gap: 6px; flex-wrap: wrap; }
+    .last-updated { display: none; }
+
+    /* Main padding */
+    .main { padding: 16px; }
+    .section-title { font-size: 10px; margin-bottom: 12px; }
+
+    /* KPI grids — 2 columnas en mobile */
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+    .kpi-grid-2 { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
+
+    /* KPI cards — más compactas */
+    .kpi-card { padding: 14px 14px; }
+    .kpi-value { font-size: 22px; }
+    .kpi-label { font-size: 9px; }
+    .kpi-sub { font-size: 10px; }
+    .kpi-period { font-size: 8px; }
+
+    /* Three col → columna única */
+    .three-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* Keyword table — scroll horizontal */
+    .panel { padding: 14px; overflow-x: auto; }
+    .panel-title { font-size: 10px; margin-bottom: 12px; }
+    .kw-table { min-width: 340px; }
+    .kw-table th { font-size: 8px; padding: 0 6px 8px 6px; }
+    .kw-table td { padding: 6px 6px; font-size: 11px; }
+    .kw-name { font-size: 11px; }
+    .kw-rank { font-size: 12px; }
+    .sv-tag { font-size: 9px; }
+
+    /* Alerts */
+    .alert { padding: 10px 12px; font-size: 11px; }
+    .alert-title { font-size: 11px; }
+    .alert-desc { font-size: 10px; }
+
+    /* Checkpoints */
+    .checkpoint { padding: 9px 12px; font-size: 11px; gap: 10px; }
+    .checkpoint-date { min-width: 44px; font-size: 9px; }
+    .checkpoint-text { font-size: 11px; }
+    .checkpoint-status { font-size: 9px; }
+
+    /* Divider */
+    .divider { margin: 20px 0; }
+
+    /* Kanban — columna única */
+    .kanban-board { grid-template-columns: 1fr; gap: 12px; }
+    .kanban-col { min-height: auto; }
+    .kanban-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .kanban-header-left { width: 100%; justify-content: space-between; }
+    .progress-bar { width: 140px; }
+    .progress-bar-wrap { font-size: 10px; }
+
+    /* Cards */
+    .kanban-card { padding: 10px 12px; }
+    .card-title { font-size: 12px; }
+    .card-desc { font-size: 10px; }
+    .card-tag { font-size: 8px; }
+
+    /* Footer */
+    .footer {
+      flex-direction: column;
+      gap: 4px;
+      text-align: center;
+      padding: 16px;
+      font-size: 10px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-grid-2 { grid-template-columns: 1fr 1fr; }
+    .kpi-value { font-size: 20px; }
+    .asin-tag { font-size: 9px; padding: 4px 8px; }
+    .badge { font-size: 9px; padding: 2px 7px; }
+  }
 </style>
 </head>
 <body>
